@@ -1,0 +1,35 @@
+name: docker-image-build
+
+parameters:
+    containerregistrytype: '' # Azure Container Registry is what you will probably be using
+    dockerRegistryEndpoint: ''
+    dockerFile: ''
+    imageName: ''
+    buildContext: ''
+
+stages:
+- stage: Build
+  displayName: Build and Deploy Docker Image
+  jobs:
+  - job: DockerImage
+    displayName: 'Build and Push Docker Image to Container Registry'
+    steps:
+      - task: Docker@1
+        displayName: 'Build Docker Image'
+        inputs:
+          containerregistrytype: ${{parameters.containerregistrytype}}
+          dockerRegistryEndpoint: ${{parameters.dockerRegistryEndpoint}}
+          command: 'Build an image'
+          dockerFile: ${{parameters.dockerFile}}
+          imageName: ${{parameters.imageName}}
+          includeLatestTag: true
+          useDefaultContext: false
+          buildContext: ${{parameters.buildContext}}
+      - task: Docker@1
+        displayName: 'Push Image to ACR'
+        inputs:
+          containerregistrytype: ${{parameters.containerregistrytype}}
+          dockerRegistryEndpoint: ${{parameters.dockerRegistryEndpoint}}
+          command: 'Push an Image'
+          imageName: ${{parameters.imageName}}
+        condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))

@@ -1,0 +1,55 @@
+name: security-scanning
+
+parameters:
+    DetectArguments: ''
+
+stages:
+- stage: SecurityScans
+  displayName: 'Security Scans'
+  jobs:
+  - job: SCA_Scan
+    displayName: Blackduck-SCA-Scan
+    steps:
+    - checkout: self
+      displayName: Checkout Repository
+    - task: SynopsysDetectTask@8
+      displayName: 'BlackDuck Scan'
+      inputs: 
+        BlackDuckService: 'BlackDuck'
+        DetectArguments: ${{parameters.DetectArguements}}
+        DetectVerison: 'latest'
+
+  - job: SAST_Scan
+    displayName: Synopsys-Polaris-SAST-Scan
+    steps:
+    - task: synopsys-polaris.synopsys-polaris.synopsys-polaris-task.SynopsysPolaris@1
+      displayName: 'Synopsys Polaris Scan'
+      inputs:
+        polarisService: 'Polaris Software Integrity Platform'
+        polarisCommand: 'analyze -w'
+        waitForIssues: true
+
+  - job: Checkov
+    displayName: Checkov-IaC-SAST-Scan
+    pool:
+      vmImage: ubuntu-latest
+    steps:
+    - bash: pip3 install checkov
+      displayName: 'Install checkov'
+      name: 'install_checkov'
+
+    - bash: checkov --directory $(System.DefaultWorkingDirectory) -o junitxml > $(System.DefaultWorkingDirectory)/Dev-Checkov-Root-Report.xml
+      displayName: 'Verify root module with Checkov'
+      name: 'checkov_root_check'
+
+    - task: PublishTestResults@2
+      displayName: Publish Checkov Root Test Results
+      condition: succeededOrFailed()
+      inputs:
+        testResultsFormat: 'JUnit'
+        testResultsFiles: '**/*Dev-Checkov-Root-Report.xml'
+        searchFolder: '$(System.DefaultWorkingDirectory)'
+        mergeTestResults: false
+        testRunTitle: Checkov Root Scan
+        failTaskOnFailedTests: false
+        publishRunAttachments: true

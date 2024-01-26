@@ -1,0 +1,41 @@
+name: dotnet-build-and-publish
+
+parameters:
+    folderPath: ''
+    fileType: ''
+    targetFiles: ''
+    projects: ''
+    PathtoPublish: ''
+    artifactName: ''
+
+stages:
+- stage: Build
+  displayName: 'Build'
+  jobs:
+  - job: 'Build_Solution'
+    displayName: 'Restore and build solution'
+    steps:
+    - task: FileTransform@1
+      displayName: 'Importing Variables'
+      inputs:
+        folderPath: ${{ parameters.folderPath }}
+        fileType: ${{ parameters.fileType }}
+        targetFiles: ${{ parameters.targetFiles }}
+
+    - task: UseDotNet@2
+      displayName: 'Updating Framework to .NET 6'
+      inputs:
+        packageType: 'sdk'
+        version: 6.x
+
+    - task: DotNetCoreCLI@2
+      displayName: 'Restore and Build Solution'
+      inputs:
+        command: build
+        projects: ${{ parameters.projects }}
+
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish Artifact'
+      inputs:
+        PathtoPublish: ${{ parameters.PathToPublish }}
+        artifactName: ${{ parameters.artifactName }}

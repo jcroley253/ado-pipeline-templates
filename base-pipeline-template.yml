@@ -1,0 +1,38 @@
+# This is a base template for ADO build pipeline YAML files for getting started. Copy to your repo and use this to get started on the build pipeline for your project.
+name: build-pipeline-template
+
+# Trigger not required. Include additional branches if needed.
+trigger:   
+  branches:
+    include: 
+    - main
+  paths:
+    include:
+    - FOLDERNAME
+
+pool:
+  vmImage: "ubuntu-latest" # Use windows if needed or if you like PS instead of bash =)
+
+resources:
+  repositories:
+    - repository: pipeline-templates
+      type: git
+      name: 'POS Software Development Pod/pos-pipeline-templates'
+
+variables:
+  - group: VARIABLEGROUPNAME
+  - name: team_name
+    value: 'TEAMNAME' # Enter team name for related work
+  - name: project_stage # Enter which phase of the project the security scan is occuring. (development, qa, e2e, prod, etc)
+    value: 'development'
+  
+stages:
+- template: security-scans.yml@pipeline-templates
+  parameters:
+      DetectArguments: |
+
+          --detect.project.name=$(Build.Repository.Name)
+          --detect.project.version.name="$(project_stage)"
+          --detect.project.group=$(team_name)
+          --detect.detector.search.depth=4
+
